@@ -1,33 +1,41 @@
-name: Node.js CI/CD Pipeline
+name: Build and Push Docker Image
 
 on:
   push:
-    branches: [ main ]
+    branches:
+      - main
 
 jobs:
-  build:
+  build-and-push:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      # Checkout code from the repo
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Setup Node.js
-      uses: actions/setup-node@v3
-      with:
-        node-version: '18'
+      # Set up Node.js for installing dependencies
+      - name: Set up Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '18'
 
-    - name: Install dependencies
-      run: npm install
+      # Install project dependencies
+      - name: Install dependencies
+        run: npm install
 
-    - name: Run tests
-      run: echo "No tests yet"
+      # Build the Docker image and tag it locally
+      - name: Build Docker image
+        run: |
+          docker build -t nodejs-demo-app .
 
-    - name: Build Docker image
-      run: docker build -t nodejs-demo-app .
+      # Log in to DockerHub securely using secrets
+      - name: Login to DockerHub
+        run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
 
-    - name: Login to DockerHub
-      run: echo "${{ secrets.DOCKER_PASSWORD }}" | docker login -u "${{ secrets.DOCKER_USERNAME }}" --password-stdin
-
-    - name: Push Docker image
-      run: docker push nodejs-demo-app
+      # Tag and push the image to your DockerHub repository
+      - name: Tag and Push Docker image to DockerHub
+        run: |
+          IMAGE_NAME=${{ secrets.DOCKER_USERNAME }}/nodejs-demo-app:latest
+          docker tag nodejs-demo-app $IMAGE_NAME
+          docker push $IMAGE_NAME
